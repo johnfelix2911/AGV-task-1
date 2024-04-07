@@ -51,48 +51,48 @@ def retracePath(node, start, img, parentTracker):
         paths[start].insert(0, [node, 1])
         retracePath(parentTracker[node], start, img, parentTracker)
 
-def Astar(img, graph, node, start, goal, map, vis, parentTracker):
-    neighbours = findNeighbours(node, graph, img, vis)
-    for i in neighbours:
-        if i not in parentTracker.keys():
-            parentTracker[i] = node
-    vis.append(node)
-    if (node==goal):
-        retracePath(goal, start, img, parentTracker)
-        return
-    highlight(node, red, img)
-    for i in neighbours:
-        g_score = map[node][0] + round(((i[0] - node[0])**2 + (i[1] - node[1])**2)**0.5)
-        h_score = abs(goal[0] - i[0]) + abs(goal[1] - i[1])
-        if i not in map.keys():
-            map[i] = [g_score, h_score]
-        else:
-            if (map[i][0]+map[i][1] > g_score+h_score):
-                map[i][0] = g_score
-                map[i][1] = h_score
-    potential_nodes = []
-    min = 10000
-    for i in map.keys():
-        if i not in vis:
-            if (map[i][0]+map[i][1])<min:
-                min = map[i][0]+map[i][1]
-                potential_nodes = [i]
-            elif (map[i][0]+map[i][1])==min:
-                potential_nodes.append(i)
-    new_node = node
-    if len(potential_nodes)==1:
-        new_node = potential_nodes[0]
-    else:
+def Astar(img, graph, node, start, goal, map, vis, parentTracker, CT):
+        neighbours = findNeighbours(node, graph, img, vis)
+        for i in neighbours:
+            if i not in parentTracker.keys():
+                parentTracker[i] = node
+        vis.append(node)
+        if (node==goal):
+            retracePath(goal, start, img, parentTracker)
+            return
+        highlight(node, red, img)
+        for i in neighbours:
+            g_score = map[node][0] + round(((i[0] - node[0])**2 + (i[1] - node[1])**2)**0.5)
+            h_score = abs(goal[0] - i[0]) + abs(goal[1] - i[1])
+            if i not in map.keys():
+                map[i] = [g_score, h_score]
+            else:
+                if (map[i][0]+map[i][1] > g_score+h_score):
+                    map[i][0] = g_score
+                    map[i][1] = h_score
+        potential_nodes = []
         min = 10000
-        for i in potential_nodes:
-            if map[i][1]<min:
-                min = map[i][1]
-                new_node = i
-    for i in vis:
-        highlight(i, red, img)
-    cv2.imshow("The GRID", img)
-    cv2.waitKey(25)
-    Astar(img, graph, new_node, start, goal, map, vis, parentTracker)
+        for i in map.keys():
+            if i not in vis:
+                if (map[i][0]+map[i][1])<min:
+                    min = map[i][0]+map[i][1]
+                    potential_nodes = [i]
+                elif (map[i][0]+map[i][1])==min:
+                    potential_nodes.append(i)
+        new_node = node
+        if len(potential_nodes)==1:
+            new_node = potential_nodes[0]
+        else:
+            min = 10000
+            for i in potential_nodes:
+                if map[i][1]<min:
+                    min = map[i][1]
+                    new_node = i
+        for i in vis:
+            highlight(i, red, img)
+        cv2.imshow("The GRID", img)
+        cv2.waitKey(25)
+        Astar(img, graph, new_node, start, goal, map, vis, parentTracker, CT)
 
 def showAllPaths():
     global no_of_agents
@@ -115,7 +115,7 @@ def showAllPaths():
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
-def loop(agent):
+def loop(agent, CT):
     img = np.full((500,500,3), 0, dtype = np.uint8)
     gridMaker(img)
     graph = []
@@ -135,12 +135,13 @@ def loop(agent):
     cv2.imshow("The GRID", img)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
-    Astar(img, graph, start, start, goal, map, vis, parentTracker)
+    Astar(img, graph, start, start, goal, map, vis, parentTracker, CT)
     for i in range(len(paths[start])):
         paths[start][i][1] = i
     cv2.destroyAllWindows()
+    return graph
 
-def conflictFinder(CT, min, paths):
+def conflictFinder(CT, min, paths, graph):
     flag = 0
     for i in paths.keys():
         for j in paths.keys():
@@ -148,8 +149,8 @@ def conflictFinder(CT, min, paths):
                 for k in range(min):
                     if (paths[i][k][0]==paths[j][k][0]):
                         CT.append((i, paths[i][k][0], paths[i][k][1]))
+                        graph.remove(paths[i][k][0])
                         flag = 1
-    print("Constraint tree = ", CT)
     return flag
 
 no_of_agents = 3
@@ -159,20 +160,19 @@ blue = (255,0,0)
 green = (0,255,0)
 red = (0,0,255)
 yellow = (0, 255, 255)
+CT = []
 
 while True:
     paths = {}
     for i in range(no_of_agents):
-        loop(i)
+        graph = loop(i, CT)
     showAllPaths()
     min = 10000
     for i in paths.keys():
         if (min>len(paths[i])):
             min = len(paths[i])
     CT = []
-
-    print("Paths = ", paths)
-    result = conflictFinder(CT, min, paths)
+    result = conflictFinder(CT, min, paths, graph)
     if (result):
         print("Conflict found!!")
         continue
