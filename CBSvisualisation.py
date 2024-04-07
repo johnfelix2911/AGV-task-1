@@ -95,10 +95,9 @@ def Astar(img, graph, node, start, goal, map, vis, parentTracker):
     Astar(img, graph, new_node, start, goal, map, vis, parentTracker)
 
 def showAllPaths():
+    global no_of_agents
     img = np.full((500,500,3), 0, dtype = np.uint8)
     gridMaker(img)
-    #print("paths[starts[0]]=", paths[starts[0]])
-    #print("starts[0]=", starts[0])
     max = len(paths[starts[0]])
     for i in paths.keys():
         if len(paths[i])>max:
@@ -106,10 +105,12 @@ def showAllPaths():
     for i in range(max):
         for j in paths.keys():
             if (i<len(paths[j])):
-                #print("printed=", paths[j][i])
                 highlight(paths[j][i][0], green, img)
         cv2.imshow("the GRID", img)
         cv2.waitKey(120)
+    for i in range(no_of_agents):
+        highlight(starts[i], yellow, img)
+        highlight(goals[i], red, img)
     cv2.imshow("the GRID", img)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
@@ -129,7 +130,7 @@ def loop(agent):
     goal = goals[agent]
     paths[start] = []
     map[start] = [0,0]
-    highlight(start, red, img)
+    highlight(start, yellow, img)
     highlight(goal, green, img)
     cv2.imshow("The GRID", img)
     cv2.waitKey(0)
@@ -157,6 +158,7 @@ goals = [(185, 405), (135,175), (415, 155)]
 blue = (255,0,0)
 green = (0,255,0)
 red = (0,0,255)
+yellow = (0, 255, 255)
 
 while True:
     paths = {}
